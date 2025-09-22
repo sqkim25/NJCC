@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Arithmetic Sequences — Count & Sum Trainer</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --muted:#9ca3af; --text:#f8fafc; --accent:#22c55e; --warn:#ef4444; --soft:#1f2937;
+  }
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  h1{font-size:clamp(22px,4vw,32px);margin:0 0 8px}
+  p{color:var(--muted);margin:0 0 16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 20px}
+  .timer,.pill{background:var(--soft);border:1px solid #263246;color:#d1d5db;border-radius:999px;padding:8px 12px}
+  button{background:#2563eb;color:#fff;border:0;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer;transition:.2s}
+  button:hover{filter:brightness(1.05)}
+  button.secondary{background:#374151}
+  button.ghost{background:transparent;border:1px solid #334155}
+  .grid{display:grid;gap:16px}
+  .qcard{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px}
+  .label{font-weight:700;margin:2px 0 6px}
+  .seq{background:#0b1220;border:1px dashed #243044;border-radius:12px;padding:12px 12px;color:#e5e7eb;word-break:break-word}
+  .inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+  input[type="number"]{width:100%;box-sizing:border-box;background:#0b1220;border:1px solid #2b3447;color:#e5e7eb;border-radius:10px;padding:10px}
+  .hidden{display:none}
+  .good{color:var(--accent);font-weight:700}
+  .bad{color:var(--warn);font-weight:700}
+  .results{margin-top:22px}
+  table{width:100%;border-collapse:collapse;border:1px solid #2a3447;border-radius:12px;overflow:hidden}
+  th,td{padding:10px;border-bottom:1px solid #222f43;text-align:left}
+  th{background:#0b1220;color:#d1d5db}
+  tr:nth-child(even){background:#0c1424}
+  .explain{background:#0b1220;border:1px solid #243044;border-radius:12px;padding:12px;margin-top:12px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+  .footer{margin-top:20px;color:#9aa3b2}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Arithmetic Sequences — Count & Sum Trainer</h1>
+  <p>For each sequence, enter (1) how many numbers are in the list and (2) the sum of all numbers. You’ll get timing and explanations at the end.</p>
+
+  <div class="row">
+    <span class="timer" id="totalTimer">Total time: 00:00.0</span>
+    <span class="pill" id="qTimer">Question time: 00:00.0</span>
+    <button id="startBtn">Start Quiz</button>
+    <button id="resetBtn" class="ghost hidden">Reset</button>
+  </div>
+
+  <div id="quiz" class="grid hidden"></div>
+
+  <div id="finish" class="results hidden">
+    <h2>Results</h2>
+    <table id="summaryTbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>a₁</th>
+          <th>d</th>
+          <th>Shown sequence</th>
+          <th>Your n</th>
+          <th>True n</th>
+          <th>Your S</th>
+          <th>True S</th>
+          <th>n ✔︎</th>
+          <th>S ✔︎</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3 style="margin-top:18px">Explanations</h3>
+    <div id="explanations"></div>
+
+    <div class="footer">Tip: The count uses <span class="mono">n = (aₙ−a₁)/d + 1</span> and the sum uses <span class="mono">S = (a₁ + aₙ)·n/2</span>.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NQ = 5;
+  const quizEl = document.getElementById('quiz');
+  const finishEl = document.getElementById('finish');
+  const startBtn = document.getElementById('startBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const totalTimerEl = document.getElementById('totalTimer');
+  const qTimerEl = document.getElementById('qTimer');
+  const summaryBody = document.querySelector('#summaryTbl tbody');
+  const explanationsEl = document.getElementById('explanations');
+
+  let questions = [];
+  let current = 0;
+  let totalStart = 0;
+  let qStart = 0;
+  let totalTimerId = null;
+  let qTimerId = null;
+
+  function fmt(ms){
+    const t = ms/1000;
+    const m = Math.floor(t/60);
+    const s = Math.floor(t%60);
+    const d = Math.floor((t - Math.floor(t))*10);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${d}`;
+  }
+
+  function startTimers(){
+    totalStart = performance.now();
+    qStart = performance.now();
+    totalTimerId = setInterval(()=>{
+      totalTimerEl.textContent = 'Total time: ' + fmt(performance.now() - totalStart);
+    }, 100);
+    qTimerId = setInterval(()=>{
+      qTimerEl.textContent = 'Question time: ' + fmt(performance.now() - qStart);
+    }, 100);
+  }
+  function nextQuestionTimer(){
+    qStart = performance.now();
+  }
+  function stopTimers(){
+    clearInterval(totalTimerId);
+    clearInterval(qTimerId);
+  }
+
+  function randInt(min, max){ // inclusive
+    return Math.floor(Math.random()*(max-min+1))+min;
+  }
+
+  function chooseDs(k){
+    const arr = [1,2,3,4,5,6,7,8,9];
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr.slice(0,k);
+  }
+
+  function seqPreview(a1, d, n){
+    const an = a1 + (n-1)*d;
+    const t0 = a1;
+    const t1 = a1 + d;
+    const t2 = a1 + 2*d;
+    const tm2 = an - d;
+    const tm1 = an;
+    return `${t0}, ${t1}, ${t2}, …, ${tm2}, ${tm1}`;
+  }
+
+  function makeQuestions(){
+    questions = [];
+    const ds = chooseDs(NQ); // vary d; no repeats
+    for(let i=0;i<NQ;i++){
+      const d = ds[i];
+      // Choose n >= 30 (upper bound optional). Keep values reasonable.
+      const n = randInt(30, 80);
+      const a1 = randInt(-50, 50);
+      const an = a1 + (n-1)*d;
+      const sum = (a1 + an) * n / 2;
+      questions.push({
+        idx: i+1,
+        a1, d, nTrue: n, an, sumTrue: sum,
+        shown: seqPreview(a1, d, n),
+        userN: null, userS: null,
+        okN: null, okS: null,
+        t_ms: 0,
+        explained: ''
+      });
+    }
+  }
+
+  function renderQuestion(i){
+    const q = questions[i];
+    const card = document.createElement('div');
+    card.className = 'qcard';
+    card.id = `q-${i}`;
+
+    card.innerHTML = `
+      <div class="label">Question ${q.idx} of ${NQ}</div>
+      <div class="seq"><strong>List:</strong> ${q.shown}</div>
+      <div class="inputs">
+        <div>
+          <label class="label" for="n-${i}">How many numbers are in the list?</label>
+          <input type="number" id="n-${i}" inputmode="numeric" placeholder="Enter n" />
+        </div>
+        <div>
+          <label class="label" for="s-${i}">What is the sum of the numbers in the list?</label>
+          <input type="number" id="s-${i}" inputmode="numeric" placeholder="Enter S" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="submit-${i}">Submit answer</button>
+        <span id="msg-${i}" class="pill hidden"></span>
+      </div>
+    `;
+    quizEl.appendChild(card);
+
+    document.getElementById(`submit-${i}`).addEventListener('click', ()=>{
+      const tEnd = performance.now();
+      const t_ms = tEnd - qStart;
+
+      const valN = Number(document.getElementById(`n-${i}`).value);
+      const valS = Number(document.getElementById(`s-${i}`).value);
+      const msg = document.getElementById(`msg-${i}`);
+
+      if(!Number.isFinite(valN) || !Number.isFinite(valS)){
+        msg.textContent = 'Please enter numbers for both fields.';
+        msg.classList.remove('hidden');
+        return;
+      }
+
+      q.userN = valN;
+      q.userS = valS;
+      q.okN = (valN === q.nTrue);
+      q.okS = (valS === q.sumTrue);
+      q.t_ms = t_ms;
+
+      msg.classList.remove('hidden');
+      msg.textContent = `Recorded. n ${q.okN ? '✔︎' : '✘'}, S ${q.okS ? '✔︎' : '✘'}.`;
+      msg.style.background = 'var(--soft)';
+
+      // Disable inputs & button
+      document.getElementById(`n-${i}`).disabled = true;
+      document.getElementById(`s-${i}`).disabled = true;
+      document.getElementById(`submit-${i}`).disabled = true;
+
+      // Move to next or finish
+      current++;
+      if(current < NQ){
+        nextQuestionTimer();
+        // Smooth scroll to next card
+        const nextId = `q-${current}`;
+        const nextEl = document.getElementById(nextId);
+        if(nextEl){ nextEl.scrollIntoView({behavior:'smooth', block:'center'}); }
+      } else {
+        finish();
+      }
+    });
+  }
+
+  function explanationText(q){
+    // Abstract explanation in the specified form (with concrete values)
+    const k = q.d - q.a1; // k chosen so that a1+k = d
+    return `
+<div class="explain">
+  <div><strong>Question ${q.idx}.</strong></div>
+  <div class="mono">a₁, a₂, …, aₙ = ${q.a1}, ${q.a1+q.d}, …, ${q.an}</div>
+  <div style="margin-top:6px">
+    Add the constant <span class="mono">k = d − a₁ = ${q.d} − ${q.a1} = ${k}</span> to all terms so that
+    <span class="mono">a₁ + k = d</span>, <span class="mono">a₂ + k = 2d</span>, …, <span class="mono">aₙ + k = n·d</span>.
+  </div>
+  <div>
+    Then divide every term by <span class="mono">d = ${q.d}</span> to get
+    <span class="mono">1, 2, 3, …, n</span>. Therefore there are <strong>n = ${q.nTrue}</strong> numbers in the sequence.
+  </div>
+  <div style="margin-top:6px">
+    For the sum: each end-pair adds to <span class="mono">a₁ + aₙ = ${q.a1} + ${q.an} = ${q.a1 + q.an}</span>.
+    There are <span class="mono">n/2 = ${q.nTrue}/2</span> pairs, so
+    <span class="mono">S = (a₁ + aₙ)·n/2 = (${q.a1}+${q.an})·${q.nTrue}/2 = ${q.sumTrue}</span>.
+  </div>
+</div>`;
+  }
+
+  function finish(){
+    stopTimers();
+    quizEl.classList.add('hidden');
+    finishEl.classList.remove('hidden');
+    resetBtn.classList.remove('hidden');
+
+    // Summary table
+    summaryBody.innerHTML = '';
+    questions.forEach(q=>{
+      const tr = document.createElement('tr');
+      const nOk = q.okN ? '<span class="good">✔︎</span>' : '<span class="bad">✘</span>';
+      const sOk = q.okS ? '<span class="good">✔︎</span>' : '<span class="bad">✘</span>';
+      tr.innerHTML = `
+        <td>${q.idx}</td>
+        <td>${q.a1}</td>
+        <td>${q.d}</td>
+        <td class="mono">${q.shown}</td>
+        <td class="mono">${q.userN}</td>
+        <td class="mono">${q.nTrue}</td>
+        <td class="mono">${q.userS}</td>
+        <td class="mono">${q.sumTrue}</td>
+        <td>${nOk}</td>
+        <td>${sOk}</td>
+        <td>${fmt(q.t_ms)}</td>
+      `;
+      summaryBody.appendChild(tr);
+    });
+
+    // Explanations
+    explanationsEl.innerHTML = questions.map(explanationText).join('');
+    // Scroll to results
+    finishEl.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function buildUI(){
+    quizEl.innerHTML = '';
+    for(let i=0;i<NQ;i++){
+      renderQuestion(i);
+    }
+  }
+
+  startBtn.addEventListener('click', ()=>{
+    startBtn.disabled = true;
+    resetBtn.classList.remove('hidden');
+    quizEl.classList.remove('hidden');
+    finishEl.classList.add('hidden');
+
+    makeQuestions();
+    buildUI();
+    current = 0;
+    startTimers();
+    document.getElementById('q-0').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    stopTimers();
+    startBtn.disabled = false;
+    totalTimerEl.textContent = 'Total time: 00:00.0';
+    qTimerEl.textContent = 'Question time: 00:00.0';
+    quizEl.innerHTML = '';
+    explanationsEl.innerHTML = '';
+    summaryBody.innerHTML = '';
+    quizEl.classList.add('hidden');
+    finishEl.classList.add('hidden');
+  });
+})();
+</script>
+</body>
+</html>
