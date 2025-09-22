@@ -3,46 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <title>JHMMC 2024 - 6th Grade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    :root { --btn:#007acc; --btnHover:#005f99; }
     body {
       font-family: Arial, sans-serif;
       margin: 2em;
       background-color: #f9f9f9;
       color: #333;
     }
-    h1 {
-      text-align: center;
-    }
-    ul {
-      list-style-type: none;
+    h1, p { text-align: center; }
+    .menu {
+      list-style: none;
       padding: 0;
-      max-width: 400px;
+      max-width: 420px;
       margin: 2em auto;
     }
-    li {
-      margin: 0.5em 0;
-    }
-    a {
+    .menu li { margin: 0.5em 0; }
+    .menu a {
       display: block;
-      padding: 0.5em 1em;
+      padding: 0.6em 1em;
       text-decoration: none;
-      background-color: #007acc;
-      color: white;
-      border-radius: 5px;
+      background: var(--btn);
+      color: #fff;
+      border-radius: 6px;
       text-align: center;
-      transition: background 0.3s;
+      transition: background 0.2s ease-in-out;
+      word-break: break-word;
     }
-    a:hover {
-      background-color: #005f99;
+    .menu a:hover { background: var(--btnHover); }
+    .section-title {
+      max-width: 420px;
+      margin: 2.5em auto 1em;
+      font-weight: bold;
+      opacity: 0.85;
     }
   </style>
 </head>
 <body>
   <h1>JHMMC 2024 - 6th Grade</h1>
-  <p style="text-align:center;">Select a problem to view:</p>
-  <ul>
+
+  <p>Select a problem to view:</p>
+  <ul class="menu">
     <li><a href="JHMMC2024-6G-P20.html">Problem 20</a></li>
-    <li><a href="https://www.ixl.com/math/geometry" target="_blank">Problem 21</a></li>
+    <li><a href="https://www.ixl.com/math/geometry" target="_blank" rel="noopener noreferrer">Problem 21 (opens in new tab)</a></li>
+  </ul>
+
+  <div class="section-title">Resources</div>
+  <ul class="menu">
+    <li>
+      <a href="https://www.mathcha.io/editor/Lo8yVcGqUGxs9rrle7IG6Yql6FWVx4OYSPqBmL5"
+         target="_blank" rel="noopener noreferrer">Notes</a>
+    </li>
   </ul>
 </body>
 </html>
